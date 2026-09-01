@@ -18,6 +18,13 @@ router.use(authMiddleware);
 router.get('/', animalController.getAll);
 
 /**
+ * @route   GET /api/animals/:id/traceability
+ * @desc    Get full traceability for an animal (weight history + sanitary records)
+ * @access  Authenticated
+ */
+router.get('/:id/traceability', animalController.getTraceability);
+
+/**
  * @route   GET /api/animals/:id
  * @desc    Get animal by ID
  * @access  Authenticated

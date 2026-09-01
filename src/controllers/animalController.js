@@ -89,6 +89,22 @@ class AnimalController {
       });
     }
   }
+
+  /**
+   * GET /api/animals/:id/traceability
+   * Returns full traceability: weight history + sanitary records
+   */
+  async getTraceability(req, res, next) {
+    try {
+      const data = await animalService.getTraceability(req.user.id, req.params.id);
+      res.status(200).json({
+        error: false,
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AnimalController();

@@ -5,10 +5,12 @@ const { Animal } = require('../models');
 class AnimalService {
   /**
    * Creates a new animal.
+   * Also inserts the initial weight into WeightHistory.
    * @param {Object} data - { tag_id, category, weight, status }
    * @returns {Object} Created animal
    */
   async create(userId, data) {
+    const { WeightHistory } = require('../models');
     const { tag_id, category, weight, status } = data;
 
     if (!tag_id || !category || weight === undefined) {
@@ -18,6 +20,15 @@ class AnimalService {
     }
 
     const animal = await Animal.create({ tag_id, category, weight, status, user_id: userId });
+
+    // Insert the initial weight as the first history record
+    await WeightHistory.create({
+      animal_id: animal.id,
+      user_id: userId,
+      weight: parseFloat(weight),
+      recorded_at: new Date(),
+    });
+
     return animal;
   }
 
@@ -169,27 +180,40 @@ class AnimalService {
 
   /**
    * Updates an animal.
+   * If weight changed, inserts a new WeightHistory record.
    * @param {string} id - Animal UUID
    * @param {Object} data - Fields to update
    * @returns {Object} Updated animal
    */
   async update(userId, id, data) {
+    const { WeightHistory } = require('../models');
     const animal = await Animal.findOne({ where: { id, user_id: userId } });
     if (!animal) {
       const error = new Error('Animal no encontrado');
       error.statusCode = 404;
       throw error;
     }
+
+    // If weight is being updated and it's different, record it in history
+    if (data.weight !== undefined && parseFloat(data.weight) !== animal.weight) {
+      await WeightHistory.create({
+        animal_id: animal.id,
+        user_id: userId,
+        weight: parseFloat(data.weight),
+        recorded_at: new Date(),
+      });
+    }
+
     await animal.update(data);
     return this.findById(userId, id);
   }
 
   /**
-   * Deletes an animal.
+   * Deletes an animal and all associated records.
    * @param {string} id - Animal UUID
    */
   async delete(userId, id) {
-    const { SanitaryRecord } = require('../models');
+    const { SanitaryRecord, WeightHistory } = require('../models');
     const animal = await Animal.findOne({ where: { id, user_id: userId } });
     if (!animal) {
       const error = new Error('Animal no encontrado');
@@ -197,11 +221,52 @@ class AnimalService {
       throw error;
     }
     
-    // Eliminación en cascada: Eliminar todos los registros sanitarios vinculados a este animal
+    // Eliminación en cascada: Eliminar todos los registros vinculados a este animal
     await SanitaryRecord.destroy({ where: { animal_id: id } });
+    await WeightHistory.destroy({ where: { animal_id: id } });
 
     await animal.destroy();
     return { message: 'Animal eliminado exitosamente' };
+  }
+
+  /**
+   * Returns full traceability data for an animal:
+   * - Animal details
+   * - Weight history (ordered by date ASC)
+   * - Sanitary records with medicine details (ordered by date ASC)
+   * @param {string} userId - User UUID
+   * @param {string} animalId - Animal UUID
+   * @returns {Object} { animal, weightHistory, sanitaryRecords }
+   */
+  async getTraceability(userId, animalId) {
+    const { SanitaryRecord, Medicine, WeightHistory } = require('../models');
+
+    const animal = await Animal.findOne({
+      where: { id: animalId, user_id: userId },
+    });
+
+    if (!animal) {
+      const error = new Error('Animal no encontrado');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const weightHistory = await WeightHistory.findAll({
+      where: { animal_id: animalId },
+      order: [['recorded_at', 'ASC']],
+    });
+
+    const sanitaryRecords = await SanitaryRecord.findAll({
+      where: { animal_id: animalId },
+      include: [{ model: Medicine, as: 'medicine' }],
+      order: [['application_date', 'ASC']],
+    });
+
+    return {
+      animal: animal.get({ plain: true }),
+      weightHistory: weightHistory.map(w => w.get({ plain: true })),
+      sanitaryRecords: sanitaryRecords.map(r => r.get({ plain: true })),
+    };
   }
 }
 
