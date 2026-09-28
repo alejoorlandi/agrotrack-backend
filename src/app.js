@@ -4,12 +4,18 @@ const express = require('express');
 const cors = require('cors');
 const errorHandler = require('./middlewares/errorHandler');
 
-// Route imports
+// Route imports — existentes
 const authRoutes = require('./routes/authRoutes');
 const animalRoutes = require('./routes/animalRoutes');
 const medicineRoutes = require('./routes/medicineRoutes');
 const sanitaryRecordRoutes = require('./routes/sanitaryRecordRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+
+// Route imports — RBAC
+const usersRoutes = require('./routes/usersRoutes');
+const groupsRoutes = require('./routes/groupsRoutes');
+const permissionsRoutes = require('./routes/permissionsRoutes');
+
 
 const app = express();
 
@@ -27,12 +33,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// --- API Routes ---
+// --- API Routes — existentes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/animals', animalRoutes);
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/sanitary-records', sanitaryRecordRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// --- API Routes — RBAC ---
+app.use('/api/users', usersRoutes);
+app.use('/api/groups', groupsRoutes);
+app.use('/api/permissions', permissionsRoutes);
 
 // --- 404 Handler ---
 app.use((req, res) => {

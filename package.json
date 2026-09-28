@@ -6,8 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "db:migrate": "node src/migrations/run.js"
+    "db:migrate": "node src/migrations/run.js",
+    "db:migrate:rbac": "node src/migrate_add_estado_rbac.js",
+    "db:seed:rbac": "node src/seed-rbac.js"
   },
+
   "keywords": [
     "trazabilidad",
     "ganadera",

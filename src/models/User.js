@@ -3,6 +3,16 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
+/**
+ * Modelo User.
+ * Representa a un usuario del sistema AgroTrack.
+ *
+ * Campos RBAC agregados:
+ *   - estado: controla si el usuario puede autenticarse ('ACTIVO' | 'INACTIVO').
+ *
+ * El campo legacy `role` se mantiene para compatibilidad con el código existente.
+ * La autorización granular se realiza a través de Groups y Permissions (RBAC).
+ */
 const User = sequelize.define('User', {
   id: {
     type: DataTypes.UUID,
@@ -21,13 +31,22 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  // Campo legacy — se conserva para no romper el auth existente
   role: {
     type: DataTypes.ENUM('admin', 'operator'),
     allowNull: false,
     defaultValue: 'operator',
+  },
+  // Campo RBAC: controla acceso al sistema
+  estado: {
+    type: DataTypes.ENUM('ACTIVO', 'INACTIVO'),
+    allowNull: false,
+    defaultValue: 'ACTIVO',
+    comment: 'ACTIVO permite login; INACTIVO bloquea el acceso sin eliminar el usuario',
   },
 }, {
   tableName: 'users',
 });
 
 module.exports = User;
+
