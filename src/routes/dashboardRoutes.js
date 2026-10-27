@@ -10,6 +10,13 @@ const router = Router();
 router.use(authMiddleware);
 
 /**
+ * @route   GET /api/dashboard/stats
+ * @desc    Get animals grouped by category (for Pie Chart)
+ * @access  Authenticated
+ */
+router.get('/stats', dashboardController.getStats);
+
+/**
  * @route   GET /api/dashboard/alerts
  * @desc    Get animals exiting quarantine within 48 hours
  * @access  Authenticated

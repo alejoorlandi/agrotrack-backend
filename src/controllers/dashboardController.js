@@ -4,6 +4,22 @@ const dashboardService = require('../services/dashboardService');
 
 class DashboardController {
   /**
+   * GET /api/dashboard/stats
+   * Returns a breakdown of animals grouped by category.
+   */
+  async getStats(req, res, next) {
+    try {
+      const data = await dashboardService.getStats(req.user.id);
+      res.status(200).json({
+        error: false,
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
    * GET /api/dashboard/alerts
    * Returns animals exiting quarantine within the next 48 hours.
    */

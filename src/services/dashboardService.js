@@ -1,9 +1,34 @@
 'use strict';
 
-const { Op } = require('sequelize');
-const { SanitaryRecord, Animal, Medicine } = require('../models');
+const { Op, fn, col, literal } = require('sequelize');
+const { SanitaryRecord, Animal, Medicine, sequelize } = require('../models');
 
 class DashboardService {
+  /**
+   * Returns a count of animals grouped by category for the authenticated user.
+   * @param {string} userId - The UUID of the authenticated user
+   * @returns {Object} { categorias: [{ nombre, cantidad }] }
+   */
+  async getStats(userId) {
+    const rawGroups = await Animal.findAll({
+      where: { user_id: userId },
+      attributes: [
+        'category',
+        [fn('COUNT', col('id')), 'cantidad'],
+      ],
+      group: ['category'],
+      order: [[literal('cantidad'), 'DESC']],
+      raw: true,
+    });
+
+    const categorias = rawGroups.map((row) => ({
+      nombre: row.category,
+      cantidad: parseInt(row.cantidad, 10),
+    }));
+
+    return { categorias };
+  }
+
   /**
    * Returns animals exiting quarantine (withdrawal period) in the next 48 hours.
    * Finds sanitary records where release_date is between now and now + 48h.
