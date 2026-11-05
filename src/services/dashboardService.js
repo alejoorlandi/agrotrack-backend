@@ -5,11 +5,13 @@ const { SanitaryRecord, Animal, Medicine, sequelize } = require('../models');
 
 class DashboardService {
   /**
-   * Returns a count of animals grouped by category for the authenticated user.
+   * Returns a count of animals grouped by category for the authenticated user,
+   * plus a breakdown of recent sanitary events grouped by medicine/treatment type.
    * @param {string} userId - The UUID of the authenticated user
-   * @returns {Object} { categorias: [{ nombre, cantidad }] }
+   * @returns {Object} { categorias: [{ nombre, cantidad }], eventosSanitarios: [{ tipo, cantidad }] }
    */
   async getStats(userId) {
+    // ── Categorías de animales ──────────────────────────────────────────────
     const rawGroups = await Animal.findAll({
       where: { user_id: userId },
       attributes: [
@@ -26,7 +28,33 @@ class DashboardService {
       cantidad: parseInt(row.cantidad, 10),
     }));
 
-    return { categorias };
+    // ── Eventos sanitarios agrupados por medicamento ────────────────────────
+    // Joins SanitaryRecord with Medicine, filtered by the user's own records,
+    // then groups by medicine name and counts occurrences.
+    const rawEvents = await SanitaryRecord.findAll({
+      where: { user_id: userId },
+      attributes: [
+        [fn('COUNT', col('SanitaryRecord.id')), 'cantidad'],
+      ],
+      include: [
+        {
+          model: Medicine,
+          as: 'medicine',
+          attributes: ['name'],
+          required: true,
+        },
+      ],
+      group: ['medicine.id', 'medicine.name'],
+      order: [[literal('cantidad'), 'DESC']],
+      raw: true,
+    });
+
+    const eventosSanitarios = rawEvents.map((row) => ({
+      tipo: row['medicine.name'],
+      cantidad: parseInt(row.cantidad, 10),
+    }));
+
+    return { categorias, eventosSanitarios };
   }
 
   /**
